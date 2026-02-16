@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Dates } from './pages/Dates';
@@ -27,7 +27,7 @@ function App() {
   return (
     <UserProvider>
       <ReloadPrompt />
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="/welcome" element={<Welcome />} />
           <Route element={<ProtectedLayout />}>
@@ -40,7 +40,7 @@ function App() {
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </UserProvider>
   );
 }
