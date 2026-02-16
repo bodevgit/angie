@@ -70,7 +70,7 @@ export const setOneSignalUser = async (userId: string) => {
     if (OneSignal.User.PushSubscription.optedIn === false) {
        console.log('User is not opted in. Requesting permission...');
        // This might trigger the browser prompt again if not permanently blocked
-       await OneSignal.User.PushSubscription.optIn();
+       // await OneSignal.User.PushSubscription.optIn(); // Commented out to prevent loops
     }
     
   } catch (error) {
