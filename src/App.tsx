@@ -3,7 +3,7 @@ import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Dates } from './pages/Dates';
 import { Plans } from './pages/Plans';
-import { Itinerary } from './pages/Itinerary';
+import { Messages } from './pages/Messages';
 import { Anniversaries } from './pages/Anniversaries';
 import { Schedule } from './pages/Schedule';
 import { Settings } from './pages/Settings';
@@ -29,12 +29,12 @@ function App() {
       <ReloadPrompt />
       <HashRouter>
         <Routes>
-          <Route path="/welcome" element={<Welcome />} />
+          <Route path="welcome" element={<Welcome />} />
           <Route element={<ProtectedLayout />}>
             <Route index element={<Home />} />
             <Route path="dates" element={<Dates />} />
             <Route path="plans" element={<Plans />} />
-            <Route path="itinerary" element={<Itinerary />} />
+            <Route path="messages" element={<Messages />} />
             <Route path="schedule" element={<Schedule />} />
             <Route path="anniversaries" element={<Anniversaries />} />
             <Route path="settings" element={<Settings />} />

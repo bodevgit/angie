@@ -33,6 +33,15 @@ CREATE TABLE IF NOT EXISTS schedules (
   UNIQUE(user_profile, day, period)
 );
 
+-- Create messages table
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  sender_id TEXT NOT NULL, -- 'angy' or 'bozy'
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  read_at TIMESTAMPTZ
+);
+
 -- Create profiles table (if not exists)
 CREATE TABLE IF NOT EXISTS profiles (
   id TEXT PRIMARY KEY, -- 'angy' or 'bozy'
@@ -69,6 +78,7 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public read/write access to dates" ON dates FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read/write access to plans" ON plans FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read/write access to schedules" ON schedules FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read/write access to messages" ON messages FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read/write access to config" ON config FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read/write access to profiles" ON profiles FOR ALL USING (true) WITH CHECK (true);
 

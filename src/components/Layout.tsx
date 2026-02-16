@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Calendar, Heart, Home, List, Map, CalendarRange, Settings } from 'lucide-react';
+import { Calendar, Heart, Home, Map, CalendarRange, Settings, MessageCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useUser } from '../lib/user-context';
 import { motion } from 'framer-motion';
@@ -52,7 +52,7 @@ export function Layout() {
         <NavItem to="/dates" icon={<Calendar size={22} />} label="Dates" />
         <NavItem to="/schedule" icon={<CalendarRange size={22} />} label="Roster" />
         <NavItem to="/plans" icon={<Map size={22} />} label="Plans" />
-        <NavItem to="/itinerary" icon={<List size={22} />} label="Itinerary" />
+        <NavItem to="/messages" icon={<MessageCircle size={22} />} label="Chat" />
         <NavItem to="/anniversaries" icon={<Heart size={22} />} label="Love" />
         <NavItem to="/settings" icon={<Settings size={22} />} label="Settings" />
       </nav>
