@@ -21,6 +21,11 @@ jobs:
           cache: 'npm'
 
       - name: Install and Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ONESIGNAL_APP_ID: ${{ secrets.VITE_ONESIGNAL_APP_ID }}
+          VITE_ONESIGNAL_API_KEY: ${{ secrets.VITE_ONESIGNAL_API_KEY }}
         run: |
           npm ci
           npm run build
