@@ -25,11 +25,14 @@ serve(async (req) => {
       throw new Error('Server OneSignal configuration missing');
     }
 
+    console.log(`Using App ID: ${ONESIGNAL_APP_ID}`);
+    console.log(`Using API Key: ${ONESIGNAL_API_KEY.slice(0, 4)}... (Length: ${ONESIGNAL_API_KEY.length})`);
+
     const options = {
       method: 'POST',
       headers: {
         accept: 'application/json',
-        'content-type': 'application/json',
+        'Content-Type': 'application/json',
         Authorization: `Basic ${ONESIGNAL_API_KEY}`,
       },
       body: JSON.stringify({
