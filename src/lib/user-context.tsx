@@ -1,0 +1,434 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from './supabase';
+import ColorThief from 'colorthief';
+
+type UserProfile = 'angy' | 'bozy';
+
+interface ThemeValues {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  text: string;
+  cardBg: string;
+}
+
+interface Theme {
+  name: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
+    cardBg: string;
+  };
+  values: ThemeValues;
+  gradient: string;
+  isDark: boolean;
+}
+
+interface UserData {
+  name: string;
+  bio: string;
+  avatar?: string;
+  backgroundImage?: string;
+  themeColors?: ThemeValues;
+  status?: 'online' | 'idle' | 'dnd' | 'offline';
+}
+
+const defaultUserData: Record<UserProfile, UserData> = {
+  angy: {
+    name: 'Angy',
+    bio: 'Distance means so little when someone means so much.',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Angy&backgroundColor=ffdfbf'
+  },
+  bozy: {
+    name: 'Bozy',
+    bio: 'Counting down the days...',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bozy&backgroundColor=b6e3f4'
+  }
+};
+
+const defaultThemeColors = {
+  primary: 'bg-theme-primary',
+  secondary: 'bg-theme-secondary',
+  accent: 'text-theme-accent',
+  background: 'bg-theme-background',
+  text: 'text-theme-text',
+  cardBg: 'bg-theme-cardBg/80',
+};
+
+const themes: Record<UserProfile, { light: Theme; dark: Theme }> = {
+  angy: {
+    light: {
+      name: 'Angy Light',
+      colors: defaultThemeColors,
+      values: {
+        primary: '236 72 153', // pink-500
+        secondary: '192 132 252', // purple-400
+        accent: '236 72 153', // pink-500
+        background: '253 242 248', // pink-50
+        text: '17 24 39', // gray-900
+        cardBg: '255 255 255', // white
+      },
+      gradient: 'from-pink-100 via-purple-100 to-indigo-100',
+      isDark: false,
+    },
+    dark: {
+      name: 'Angy Dark',
+      colors: defaultThemeColors,
+      values: {
+        primary: '219 39 119', // pink-600
+        secondary: '147 51 234', // purple-600
+        accent: '244 114 182', // pink-400
+        background: '17 24 39', // gray-900
+        text: '243 244 246', // gray-100
+        cardBg: '31 41 55', // gray-800
+      },
+      gradient: 'from-gray-900 via-purple-950 to-pink-950',
+      isDark: true,
+    }
+  },
+  bozy: {
+    light: {
+      name: 'Bozy Light',
+      colors: defaultThemeColors,
+      values: {
+        primary: '37 99 235', // blue-600
+        secondary: '6 182 212', // cyan-500
+        accent: '37 99 235', // blue-600
+        background: '248 250 252', // slate-50
+        text: '17 24 39', // gray-900
+        cardBg: '255 255 255', // white
+      },
+      gradient: 'from-slate-100 via-blue-50 to-cyan-50',
+      isDark: false,
+    },
+    dark: {
+      name: 'Bozy Dark',
+      colors: defaultThemeColors,
+      values: {
+        primary: '59 130 246', // blue-500
+        secondary: '8 145 178', // cyan-600
+        accent: '96 165 250', // blue-400
+        background: '15 23 42', // slate-900
+        text: '243 244 246', // gray-100
+        cardBg: '30 41 59', // slate-800
+      },
+      gradient: 'from-slate-900 via-blue-950 to-cyan-950',
+      isDark: true,
+    }
+  },
+};
+
+interface UserContextType {
+  user: UserProfile | null;
+  setUser: (user: UserProfile | null) => void;
+  theme: Theme;
+  userData: UserData;
+  allUsers: Record<UserProfile, UserData>;
+  updateUserData: (data: Partial<UserData>) => Promise<void>;
+  uploadImage: (file: File, bucket: string, type?: 'avatar' | 'background') => Promise<string | null>;
+  isDarkMode: boolean;
+  toggleDarkMode: () => void;
+}
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
+
+const getDominantColors = async (imageUrl: string, isDark: boolean): Promise<ThemeValues | null> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.src = imageUrl;
+    
+    img.onload = () => {
+      try {
+        const colorThief = new ColorThief();
+        const palette = colorThief.getPalette(img, 5);
+        if (!palette || palette.length < 2) {
+            resolve(null);
+            return;
+        }
+
+        const rgb = (c: number[]) => `${c[0]} ${c[1]} ${c[2]}`;
+        
+        // Use dominant color as primary
+        const primary = palette[0];
+        const secondary = palette[1];
+        const accent = palette[2] || palette[0];
+        
+        // Determine brightness of primary color to decide text color on primary bg
+        const brightness = (primary[0] * 299 + primary[1] * 587 + primary[2] * 114) / 1000;
+        const isPrimaryLight = brightness > 128;
+
+        const values: ThemeValues = {
+            primary: rgb(primary),
+            secondary: rgb(secondary),
+            accent: rgb(accent), // For text
+            background: isDark ? '15 23 42' : '248 250 252', // Keep page bg neutral but tinted? Or extracted?
+            // Let's use neutral bg to avoid overwhelming look, but maybe tint it?
+            // Actually, user said "adjust all the layout and colors to that color of the image".
+            // So maybe use a very light tint of primary for bg.
+            text: isDark ? '243 244 246' : '17 24 39',
+            cardBg: isDark ? '30 41 59' : '255 255 255',
+        };
+
+        // Advanced: Adjust background and cardBg based on primary color
+        if (isDark) {
+             values.background = `${Math.max(0, primary[0]-200)} ${Math.max(0, primary[1]-200)} ${Math.max(0, primary[2]-200)}`; // Very dark version
+             values.cardBg = `${Math.max(0, primary[0]-150)} ${Math.max(0, primary[1]-150)} ${Math.max(0, primary[2]-150)}`; // Dark version
+             values.text = '243 244 246';
+        } else {
+             values.background = `${Math.min(255, primary[0]+200)} ${Math.min(255, primary[1]+200)} ${Math.min(255, primary[2]+200)}`; // Very light version
+             values.cardBg = '255 255 255';
+             values.text = '17 24 39';
+        }
+        
+        resolve(values);
+      } catch (e) {
+        console.error('Error extracting colors:', e);
+        resolve(null);
+      }
+    };
+    
+    img.onerror = (e) => {
+        console.error('Error loading image for color extraction:', e);
+        resolve(null);
+    };
+  });
+};
+
+export function UserProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    const saved = localStorage.getItem('user');
+    return (saved as UserProfile) || null;
+  });
+
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('darkMode') === 'true';
+  });
+
+  const [userDataMap, setUserDataMap] = useState<Record<UserProfile, UserData>>(() => {
+    const saved = localStorage.getItem('userData');
+    return saved ? JSON.parse(saved) : defaultUserData;
+  });
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user', user);
+    } else {
+      localStorage.removeItem('user');
+    }
+  }, [user]);
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', String(isDarkMode));
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    localStorage.setItem('userData', JSON.stringify(userDataMap));
+  }, [userDataMap]);
+
+  // Fetch all profiles from Supabase
+  useEffect(() => {
+    async function fetchProfiles() {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (data) {
+        const newMap = { ...userDataMap };
+        data.forEach((profile: any) => {
+          if (profile.id === 'angy' || profile.id === 'bozy') {
+            newMap[profile.id as UserProfile] = {
+              name: profile.name,
+              bio: profile.bio,
+              avatar: profile.avatar_url,
+              backgroundImage: profile.background_url,
+              status: profile.status,
+              themeColors: userDataMap[profile.id as UserProfile]?.themeColors // Preserve local theme colors
+            };
+          }
+        });
+        setUserDataMap(newMap);
+      }
+    }
+
+    fetchProfiles();
+
+    // Subscribe to realtime changes for all profiles
+    const channel = supabase
+      .channel('profile-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+        },
+        (payload) => {
+          const newData = payload.new as any;
+          if (newData && (newData.id === 'angy' || newData.id === 'bozy')) {
+            setUserDataMap((prev) => ({
+              ...prev,
+              [newData.id]: {
+                name: newData.name,
+                bio: newData.bio,
+                avatar: newData.avatar_url,
+                backgroundImage: newData.background_url,
+                status: newData.status,
+                themeColors: prev[newData.id as UserProfile]?.themeColors
+              },
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []); // Run once on mount
+
+  // Effect to generate theme colors when background image changes
+  useEffect(() => {
+    if (!user) return;
+    const userData = userDataMap[user];
+    
+    if (userData?.backgroundImage && !userData.themeColors) {
+      // Generate theme colors
+      getDominantColors(userData.backgroundImage, isDarkMode).then(colors => {
+        if (colors) {
+          setUserDataMap(prev => ({
+            ...prev,
+            [user]: {
+              ...prev[user],
+              themeColors: colors
+            }
+          }));
+        }
+      });
+    } else if (!userData?.backgroundImage && userData?.themeColors) {
+      // Reset theme colors if background removed
+      setUserDataMap(prev => ({
+        ...prev,
+        [user]: {
+          ...prev[user],
+          themeColors: undefined
+        }
+      }));
+    }
+  }, [user, userDataMap[user]?.backgroundImage, isDarkMode]); // Re-run if background or mode changes? 
+  // If mode changes, we might want to re-generate theme colors for dark/light mode optimization
+  
+  // Need to be careful not to create infinite loop. 
+  // userData.themeColors check prevents infinite loop if we only set it once.
+  // But if isDarkMode changes, we might want to update themeColors.
+  // So we should store themeColors for light/dark separately? Or just re-compute.
+  // For simplicity, let's recompute. 
+  // But updating state triggers re-render.
+  // Let's use a ref or just dependency check.
+  
+  // Better approach: Compute derived theme on the fly or in a useMemo, but ColorThief is async.
+  // So state is needed.
+
+  const updateUserData = async (data: Partial<UserData>) => {
+    if (!user) return;
+    
+    // Update local state immediately
+    setUserDataMap(prev => ({
+      ...prev,
+      [user]: { ...prev[user], ...data }
+    }));
+
+    // Sync with Supabase
+    const updates: any = {
+      id: user,
+      updated_at: new Date(),
+    };
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.bio !== undefined) updates.bio = data.bio;
+    if (data.avatar !== undefined) updates.avatar_url = data.avatar;
+    if (data.backgroundImage !== undefined) updates.background_url = data.backgroundImage;
+    if (data.status !== undefined) updates.status = data.status;
+
+    const { error } = await supabase.from('profiles').upsert(updates);
+    if (error) {
+      console.error('Error updating profile:', error);
+    }
+  };
+
+  const uploadImage = async (file: File, bucket: string, type: 'avatar' | 'background' = 'avatar'): Promise<string | null> => {
+    if (!user) return null;
+
+    let fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
+    if (fileExt === 'jpeg') fileExt = 'jpg';
+    
+    const fileName = `${user}-${type}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        upsert: true,
+        contentType: file.type
+      });
+
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError);
+      return null;
+    }
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(filePath, 60 * 60 * 24 * 365 * 10); // 10 years
+
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      return null;
+    }
+
+    return data.signedUrl;
+  };
+
+  const toggleDarkMode = () => setIsDarkMode(prev => !prev);
+
+  // Determine current theme
+  const baseTheme = user 
+    ? (isDarkMode ? themes[user].dark : themes[user].light)
+    : (isDarkMode ? themes.angy.dark : themes.angy.light);
+
+  const currentUserData = user ? userDataMap[user] : defaultUserData.angy;
+  
+  // Override with custom colors if available
+  const currentTheme: Theme = currentUserData?.themeColors ? {
+    ...baseTheme,
+    values: currentUserData.themeColors,
+    // colors remain default utility classes which map to CSS vars
+  } : baseTheme;
+
+  return (
+    <UserContext.Provider value={{ 
+      user, 
+      setUser, 
+      theme: currentTheme, 
+      userData: currentUserData,
+      allUsers: userDataMap,
+      updateUserData,
+      uploadImage,
+      isDarkMode,
+      toggleDarkMode
+    }}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+
+export function useUser() {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
+}
