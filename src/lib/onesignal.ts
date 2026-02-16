@@ -66,6 +66,13 @@ export const setOneSignalUser = async (userId: string) => {
     console.log('Push Subscription Token:', OneSignal.User.PushSubscription.token);
     console.log('Push Subscription Opted In:', OneSignal.User.PushSubscription.optedIn);
     
+    // Force subscription refresh
+    if (OneSignal.User.PushSubscription.optedIn === false) {
+       console.log('User is not opted in. Requesting permission...');
+       // This might trigger the browser prompt again if not permanently blocked
+       await OneSignal.User.PushSubscription.optIn();
+    }
+    
   } catch (error) {
     console.error('Error setting OneSignal user:', error);
   }
