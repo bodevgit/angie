@@ -165,10 +165,11 @@ export function Messages() {
   };
 
   const handleTestNotification = () => {
-     const targetUser = user === 'angy' ? 'bozy' : 'angy';
-     if (confirm(`Send test push to ${targetUser}?`)) {
-        sendPushNotification("This is a test push!", targetUser);
-        alert("Sent! If they don't receive it, check the console logs.");
+     // For testing, send to MYSELF to verify integration
+     const targetUser = user; 
+     if (confirm(`Send test push to YOURSELF (${targetUser})? This is the best way to verify it works.`)) {
+        sendPushNotification("This is a test push to yourself!", targetUser as string);
+        alert("Sent! Check if you receive it (and check console for errors).");
      }
   };
 
