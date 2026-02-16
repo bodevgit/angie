@@ -2,7 +2,7 @@ import OneSignal from 'react-onesignal';
 
 // NOTE: Keys are now loaded from environment variables
 const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID;
-const ONESIGNAL_API_KEY = import.meta.env.VITE_ONESIGNAL_API_KEY; 
+// const ONESIGNAL_API_KEY = import.meta.env.VITE_ONESIGNAL_API_KEY; 
 
 let isInitialized = false;
 
