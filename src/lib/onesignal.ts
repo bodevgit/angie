@@ -17,16 +17,25 @@ export const initOneSignal = async () => {
   console.log(`Initializing OneSignal with App ID: ${ONESIGNAL_APP_ID.slice(0, 8)}...`);
 
   try {
+    // Force cleanup of old workers with wrong scopes
+    if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+            if (registration.scope.includes('angie') && !registration.active) {
+                // Try to unregister stale ones if any
+                // console.log('Unregistering stale worker:', registration);
+                // await registration.unregister();
+            }
+        }
+    }
+
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
       allowLocalhostAsSecureOrigin: true,
       // IMPORTANT: When hosting on a subpath (e.g. /angie/), we must specify the path
       // to the worker so OneSignal knows where to find it.
       serviceWorkerParam: { scope: '/angie/' },
-      // serviceWorkerPath must be relative to the scope or root.
-      // Since scope is /angie/, we should try being explicit about the path.
       serviceWorkerPath: 'OneSignalSDKWorker.js', 
-      path: '/angie/', // Add this to tell OneSignal SDK where its own files are
     });
     isInitialized = true;
     console.log('OneSignal initialized successfully');
