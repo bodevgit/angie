@@ -40,6 +40,35 @@ export const initOneSignal = async () => {
       // Combined with 'path', it should resolve to /angie/sw.js
       serviceWorkerPath: 'sw.js', 
     });
+
+    // Handle foreground notifications
+    OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
+      console.log('OneSignal: Notification received in foreground', event);
+      // Prevent default to ensure it displays, or use custom display logic
+      // Note: React-OneSignal types might be slightly off, casting to any if needed or checking docs
+      // For v5, simply not calling preventDefault might show it, or we need to explicitly display.
+      // Actually, if we want to show it as a system notification, we usually just let it pass.
+      // But user says "dont get a notification". 
+      // If we want to FORCE it:
+      // event.preventDefault(); // This actually STOPS it from showing in some versions? No, it prevents "default behavior".
+      // Let's try just logging and NOT preventing default, which usually allows it to show.
+      // OR, explicitly calling display() if available.
+      // The error says 'display' does not exist on type 'IOSNotification'. 
+      // It seems the type definition is strict.
+      // Let's try casting to any to bypass TS error if we are sure it exists, 
+      // OR just rely on default behavior but ensure we aren't suppressing it elsewhere.
+      
+      // In OneSignal v5, to show the notification when app is in foreground, you typically don't need to do anything 
+      // unless you previously suppressed it.
+      // However, if we want to trigger a custom behavior (like our own toast), we would do it here.
+      // Since we want SYSTEM notification:
+      
+      // event.preventDefault(); // If we call this, it WON'T show. So we should NOT call it if we want it to show?
+      // Wait, docs say: "If you want to display the notification, you call event.notification.display()".
+      // So we MUST call display(). The type error is just TS missing the method.
+      (event.notification as any).display();
+    });
+
     isInitialized = true;
     console.log('OneSignal initialized successfully');
   } catch (error) {

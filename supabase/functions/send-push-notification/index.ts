@@ -12,6 +12,27 @@ serve(async (req) => {
   }
 
   try {
+    // 1. Check for Authorization header (Supabase Anon Key or Service Role Key)
+    // This is the source of the 401 error. The function expects a valid JWT or Anon Key.
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+        // If missing, we can choose to allow public access (risky) or return 401.
+        // For this specific pair app, let's allow public access if the request body is valid
+        // BUT better practice is to ensure client sends the anon key.
+        // The client (supabase-js) sends it automatically.
+        // If it fails verification on Supabase side before reaching here, we can't fix it in code.
+        // However, if it reaches here, we might need to handle it.
+        // Actually, "FunctionsHttpError: Edge Function returned a non-2xx status code" with 401
+        // usually means the Gateway rejected it OR our code returned 401.
+        // Let's see if we are returning 401 anywhere. No.
+        // So Supabase Gateway is rejecting it.
+        // This happens if "Enforce JWT Verification" is enabled for the function and the client doesn't send a valid JWT.
+        // OR if we are not handling OPTIONS correctly (which we are).
+        
+        // Let's log the headers to debug
+        console.log("Request Headers:", Object.fromEntries(req.headers.entries()));
+    }
+
     const { content, targetUserId } = await req.json();
 
     if (!content || !targetUserId) {
