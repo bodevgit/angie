@@ -22,6 +22,11 @@ export function Messages() {
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Presence State
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const presenceChannelRef = useRef<any>(null);
 
   useEffect(() => {
     fetchMessages();
@@ -48,7 +53,33 @@ export function Messages() {
         console.log(`Realtime subscription status: ${status}`);
       });
 
-    // 2. Polling Fallback (every 5 seconds)
+    // 2. Presence Channel for Typing Indicators
+    const presenceChannel = supabase.channel('presence-chat');
+    presenceChannelRef.current = presenceChannel;
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        const typing = new Set<string>();
+        
+        Object.keys(state).forEach(key => {
+           const presence = state[key] as any[];
+           presence.forEach(p => {
+             if (p.user !== user && p.isTyping) {
+               typing.add(p.user);
+             }
+           });
+        });
+        
+        setTypingUsers(typing);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ user, isTyping: false });
+        }
+      });
+
+    // 3. Polling Fallback (every 5 seconds)
     // This ensures that even if Realtime disconnects or is not enabled, we still get messages.
     const interval = setInterval(() => {
       fetchMessages(true); // silent fetch
@@ -57,9 +88,27 @@ export function Messages() {
     return () => {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
+      supabase.removeChannel(presenceChannel);
       clearInterval(interval);
     };
   }, [user]);
+
+  const handleTyping = () => {
+    if (!presenceChannelRef.current) return;
+
+    // Send typing event
+    presenceChannelRef.current.track({ user, isTyping: true });
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout to stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      presenceChannelRef.current?.track({ user, isTyping: false });
+    }, 2000);
+  };
 
   const handleNewMessage = (newMsg: Message) => {
     setMessages((prev) => {
@@ -123,6 +172,10 @@ export function Messages() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user) return;
+
+    // Stop typing immediately when sending
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    presenceChannelRef.current?.track({ user, isTyping: false });
 
     const content = newMessage.trim();
     setNewMessage(''); // Optimistic clear
@@ -281,6 +334,30 @@ export function Messages() {
                 </motion.div>
               );
             })}
+            {/* Typing Indicator */}
+            {typingUsers.size > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-start"
+              >
+                <div className="flex items-end gap-2 max-w-[80%] flex-row">
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-white/10 bg-gray-800">
+                    {typingUsers.size === 1 ? (
+                       <img src={allUsers[Array.from(typingUsers)[0] as 'angy' | 'bozy']?.avatar} alt="Typing" className="w-full h-full object-cover opacity-50" />
+                    ) : (
+                       <div className="w-full h-full bg-gray-600 animate-pulse" />
+                    )}
+                  </div>
+                  
+                  <div className="bg-white/10 p-3 rounded-2xl rounded-bl-none border border-white/5 flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              </motion.div>
+            )}
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -290,7 +367,10 @@ export function Messages() {
         <input
           type="text"
           value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
+          onChange={(e) => {
+            setNewMessage(e.target.value);
+            handleTyping();
+          }}
           placeholder="Type a message..."
           className={`flex-1 p-3 pr-12 rounded-full bg-white/10 border border-white/10 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-${theme.colors.primary.split(' ')[0]}-500/50 backdrop-blur-md`}
         />
