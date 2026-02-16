@@ -22,9 +22,11 @@ export const initOneSignal = async () => {
       allowLocalhostAsSecureOrigin: true,
       // IMPORTANT: When hosting on a subpath (e.g. /angie/), we must specify the path
       // to the worker so OneSignal knows where to find it.
-      // Otherwise it looks at the root (/) which is a 404.
       serviceWorkerParam: { scope: '/angie/' },
+      // serviceWorkerPath must be relative to the scope or root.
+      // Since scope is /angie/, we should try being explicit about the path.
       serviceWorkerPath: 'OneSignalSDKWorker.js', 
+      path: '/angie/', // Add this to tell OneSignal SDK where its own files are
     });
     isInitialized = true;
     console.log('OneSignal initialized successfully');
