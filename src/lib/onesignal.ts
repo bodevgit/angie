@@ -1,25 +1,39 @@
 import OneSignal from 'react-onesignal';
 
-// NOTE: You need to replace these with your actual OneSignal keys
-const ONESIGNAL_APP_ID = 'YOUR_ONESIGNAL_APP_ID';
-const ONESIGNAL_API_KEY = 'YOUR_ONESIGNAL_REST_API_KEY'; 
+// NOTE: Keys are now loaded from environment variables
+const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID;
+const ONESIGNAL_API_KEY = import.meta.env.VITE_ONESIGNAL_API_KEY; 
+
+let isInitialized = false;
 
 export const initOneSignal = async () => {
+  if (isInitialized) return;
+
+  if (!ONESIGNAL_APP_ID) {
+    console.error('OneSignal App ID is missing. Please check your .env or GitHub Secrets.');
+    return;
+  }
+
+  console.log(`Initializing OneSignal with App ID: ${ONESIGNAL_APP_ID.slice(0, 8)}...`);
+
   try {
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
       allowLocalhostAsSecureOrigin: true,
-      // notifyButton: {
-      //   enable: true,
-      // },
     });
-    console.log('OneSignal initialized');
+    isInitialized = true;
+    console.log('OneSignal initialized successfully');
   } catch (error) {
     console.error('Error initializing OneSignal:', error);
   }
 };
 
 export const setOneSignalUser = async (userId: string) => {
+  if (!isInitialized) {
+    console.warn('OneSignal not initialized yet, skipping user set.');
+    return;
+  }
+  
   try {
     await OneSignal.login(userId);
     console.log('OneSignal user set:', userId);
@@ -29,7 +43,7 @@ export const setOneSignalUser = async (userId: string) => {
 };
 
 export const sendPushNotification = async (content: string, targetUserId: string) => {
-  if (ONESIGNAL_APP_ID === 'YOUR_ONESIGNAL_APP_ID') {
+  if (!ONESIGNAL_APP_ID) {
     console.warn('OneSignal App ID not set. Notification not sent.');
     return;
   }
