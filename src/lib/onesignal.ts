@@ -20,6 +20,8 @@ export const initOneSignal = async () => {
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
       allowLocalhostAsSecureOrigin: true,
+      serviceWorkerParam: { scope: '/angie/' },
+      serviceWorkerPath: 'OneSignalSDKWorker.js',
     });
     isInitialized = true;
     console.log('OneSignal initialized successfully');
