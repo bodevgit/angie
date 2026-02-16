@@ -32,10 +32,13 @@ export const initOneSignal = async () => {
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
       allowLocalhostAsSecureOrigin: true,
-      // When hosted at https://bodevgit.github.io/angie/, the root is https://bodevgit.github.io/
-      // OneSignal defaults to looking at root. We need to point it to /angie/
-      path: '/angie/',
+      // For GitHub Pages subdirectory deployment (/angie/)
+      // 'path' tells SDK where to look for worker files relative to origin
+      path: '/angie/', 
+      // 'scope' defines which pages the worker controls. Must be /angie/ or subpath.
       serviceWorkerParam: { scope: '/angie/' },
+      // 'serviceWorkerPath' is the file name. 
+      // Combined with 'path', it should resolve to /angie/OneSignalSDKWorker.js
       serviceWorkerPath: 'OneSignalSDKWorker.js', 
     });
     isInitialized = true;
