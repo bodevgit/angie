@@ -20,7 +20,11 @@ export const initOneSignal = async () => {
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
       allowLocalhostAsSecureOrigin: true,
-      serviceWorkerPath: 'OneSignalSDKWorker.js',
+      // IMPORTANT: When hosting on a subpath (e.g. /angie/), we must specify the path
+      // to the worker so OneSignal knows where to find it.
+      // Otherwise it looks at the root (/) which is a 404.
+      serviceWorkerParam: { scope: '/angie/' },
+      serviceWorkerPath: 'OneSignalSDKWorker.js', 
     });
     isInitialized = true;
     console.log('OneSignal initialized successfully');
