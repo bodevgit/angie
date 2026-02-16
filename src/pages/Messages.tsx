@@ -27,8 +27,7 @@ export function Messages() {
     fetchMessages();
     checkNotificationPermission();
 
-    // Subscribe to new messages
-    // Use a unique channel name per session to avoid conflicts
+    // 1. Subscribe to new messages (Realtime)
     const channelName = `public:messages:${Date.now()}`;
     const channel = supabase
       .channel(channelName)
@@ -42,47 +41,78 @@ export function Messages() {
         (payload) => {
           console.log('Realtime message received:', payload);
           const newMsg = payload.new as Message;
-          setMessages((prev) => {
-             // Deduplicate messages just in case
-             if (prev.some(m => m.id === newMsg.id)) return prev;
-             return [...prev, newMsg];
-          });
-          
-          // Show local notification if not sent by current user
-          if (newMsg.sender_id !== user) {
-             showLocalNotification(newMsg);
-          }
-          
-          scrollToBottom();
+          handleNewMessage(newMsg);
         }
       )
       .subscribe((status) => {
         console.log(`Realtime subscription status: ${status}`);
       });
 
+    // 2. Polling Fallback (every 5 seconds)
+    // This ensures that even if Realtime disconnects or is not enabled, we still get messages.
+    const interval = setInterval(() => {
+      fetchMessages(true); // silent fetch
+    }, 5000);
+
     return () => {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [user]);
+
+  const handleNewMessage = (newMsg: Message) => {
+    setMessages((prev) => {
+       // Deduplicate
+       if (prev.some(m => m.id === newMsg.id)) return prev;
+       return [...prev, newMsg];
+    });
+    
+    // Show local notification if not sent by current user
+    if (newMsg.sender_id !== user) {
+       showLocalNotification(newMsg);
+    }
+    
+    // Defer scroll to allow render
+    setTimeout(scrollToBottom, 100);
+  };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const fetchMessages = async () => {
+  const fetchMessages = async (silent = false) => {
     try {
+      // Only show loading spinner on initial load
+      if (!silent) setLoading(true);
+      
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
-      setLoading(false);
+      
+      if (data) {
+        setMessages(prev => {
+          // If silent update, merge smartly to avoid jitter (though React state batching helps)
+          // Actually, replacing the array is fine if we sort it, but checking for length diff helps performance
+          if (silent && prev.length === data.length) return prev;
+          
+          // Check for new messages to notify
+          if (silent && data.length > prev.length) {
+             const newMessages = data.filter(d => !prev.some(p => p.id === d.id));
+             newMessages.forEach(m => {
+               if (m.sender_id !== user) showLocalNotification(m);
+             });
+          }
+          return data;
+        });
+      }
     } catch (error) {
       console.error('Error fetching messages:', error);
-      setLoading(false);
+    } finally {
+      if (!silent) setLoading(false);
     }
   };
 
