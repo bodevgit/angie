@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
 import ColorThief from 'colorthief';
+import { setOneSignalUser } from './onesignal';
 
 type UserProfile = 'angy' | 'bozy';
 
@@ -295,6 +296,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       supabase.removeChannel(channel);
     };
   }, []); // Run once on mount
+
+  useEffect(() => {
+    if (user) {
+      setOneSignalUser(user);
+    }
+  }, [user]);
 
   // Effect to generate theme colors when background image changes
   useEffect(() => {

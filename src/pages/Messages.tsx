@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { MessageCircle, Send, Bell, BellOff, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
+import { sendPushNotification } from '../lib/onesignal';
 
 type Message = {
   id: string;
@@ -93,6 +94,11 @@ export function Messages() {
       });
 
       if (error) throw error;
+      
+      // Send push notification to the other user
+      const targetUser = user === 'angy' ? 'bozy' : 'angy';
+      sendPushNotification(content, targetUser);
+      
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message. Please try again.');

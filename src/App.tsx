@@ -12,6 +12,8 @@ import { DataProvider } from './lib/data-context';
 import { Welcome } from './pages/Welcome';
 import { Navigate } from 'react-router-dom';
 import { ReloadPrompt } from './components/ReloadPrompt';
+import { useEffect } from 'react';
+import { initOneSignal } from './lib/onesignal';
 
 function ProtectedLayout() {
   const { user } = useUser();
@@ -24,6 +26,10 @@ function ProtectedLayout() {
 }
 
 function App() {
+  useEffect(() => {
+    initOneSignal();
+  }, []);
+
   return (
     <UserProvider>
       <ReloadPrompt />
