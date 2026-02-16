@@ -195,6 +195,7 @@ export function Messages() {
           {notificationsEnabled ? <Bell size={20} /> : <BellOff size={20} />}
         </button>
       </div>
+      </div>
 
       <div className={`flex-1 overflow-y-auto rounded-2xl ${theme.colors.cardBg} backdrop-blur-md shadow-inner p-4 mb-4 border border-white/5`}>
         {loading ? (
