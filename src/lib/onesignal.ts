@@ -40,7 +40,13 @@ export const setOneSignalUser = async (userId: string) => {
     await OneSignal.login(userId);
     // Add alias to ensure 'external_id' targeting works reliably
     await OneSignal.User.addAlias("external_id", userId);
+    
+    // DEBUG: Log current subscription state
     console.log('OneSignal user set and aliased:', userId);
+    console.log('Push Subscription ID:', OneSignal.User.PushSubscription.id);
+    console.log('Push Subscription Token:', OneSignal.User.PushSubscription.token);
+    console.log('Push Subscription Opted In:', OneSignal.User.PushSubscription.optedIn);
+    
   } catch (error) {
     console.error('Error setting OneSignal user:', error);
   }
