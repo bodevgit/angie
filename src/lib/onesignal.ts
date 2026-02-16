@@ -43,48 +43,19 @@ export const setOneSignalUser = async (userId: string) => {
   }
 };
 
+import { supabase } from './supabase';
+
+// ... existing imports ...
+
 export const sendPushNotification = async (content: string, targetUserId: string) => {
-  if (!ONESIGNAL_APP_ID) {
-    console.warn('OneSignal App ID not set. Notification not sent.');
-    return;
-  }
-
+  // We now use Supabase Edge Functions to avoid CORS issues and hide API keys
   try {
-    const options = {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        Authorization: `Basic ${ONESIGNAL_API_KEY}`,
-      },
-      body: JSON.stringify({
-        app_id: ONESIGNAL_APP_ID,
-        // include_external_user_ids is deprecated but still works for older apps.
-        // For new apps, we should use filters or include_aliases if using the new Identity model.
-        // However, OneSignal.login(userId) maps to the External ID in the new model.
-        // Let's try include_aliases which is the modern way.
-        include_aliases: {
-          external_id: [targetUserId]
-        },
-        target_channel: "push",
-        contents: { en: content },
-        headings: { en: 'New Message' },
-        url: window.location.origin + '/#/messages',
-      }),
-    };
-
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
-       ...options,
-       mode: 'no-cors' // TEMPORARY FIX: This bypasses CORS but returns an opaque response
+    const { data, error } = await supabase.functions.invoke('send-push-notification', {
+      body: { content, targetUserId },
     });
-    // With no-cors, we can't read the response JSON, so we just assume success
-    console.log('Push notification sent (opaque response)');
-    
-    /* 
-    // Fallback logic disabled because we can't read errors in no-cors mode
-    if (data.errors) { ... }
-    */
 
+    if (error) throw error;
+    console.log('Push notification sent via Edge Function:', data);
   } catch (error) {
     console.error('Error sending push notification:', error);
   }
