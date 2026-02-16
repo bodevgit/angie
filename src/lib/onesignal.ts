@@ -1,8 +1,7 @@
 import OneSignal from 'react-onesignal';
 
 // NOTE: Keys are now loaded from environment variables
-const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID;
-// const ONESIGNAL_API_KEY = import.meta.env.VITE_ONESIGNAL_API_KEY; 
+const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID; 
 
 let isInitialized = false;
 
@@ -38,8 +37,8 @@ export const initOneSignal = async () => {
       // 'scope' defines which pages the worker controls. Must be /angie/ or subpath.
       serviceWorkerParam: { scope: '/angie/' },
       // 'serviceWorkerPath' is the file name. 
-      // Combined with 'path', it should resolve to /angie/OneSignalSDKWorker.js
-      serviceWorkerPath: 'OneSignalSDKWorker.js', 
+      // Combined with 'path', it should resolve to /angie/sw.js
+      serviceWorkerPath: 'sw.js', 
     });
     isInitialized = true;
     console.log('OneSignal initialized successfully');
@@ -55,23 +54,22 @@ export const setOneSignalUser = async (userId: string) => {
   }
   
   try {
-    // Login identifies the user
-    await OneSignal.login(userId);
-    // Add alias to ensure 'external_id' targeting works reliably
-    await OneSignal.User.addAlias("external_id", userId);
+    // Optimization: Check if already logged in as this user
+    if (OneSignal.User.externalId === userId) {
+      console.log('OneSignal: Already logged in as', userId);
+    } else {
+      // Login identifies the user
+      await OneSignal.login(userId);
+    }
+    
+    // Note: 'external_id' is automatically handled by login(), so we don't add it as an alias manually.
     
     // DEBUG: Log current subscription state
-    console.log('OneSignal user set and aliased:', userId);
+    console.log('OneSignal user set:', userId);
+    console.log('OneSignal.User.externalId:', OneSignal.User.externalId);
     console.log('Push Subscription ID:', OneSignal.User.PushSubscription.id);
     console.log('Push Subscription Token:', OneSignal.User.PushSubscription.token);
     console.log('Push Subscription Opted In:', OneSignal.User.PushSubscription.optedIn);
-    
-    // Force subscription refresh
-    if (OneSignal.User.PushSubscription.optedIn === false) {
-       console.log('User is not opted in. Requesting permission...');
-       // This might trigger the browser prompt again if not permanently blocked
-       // await OneSignal.User.PushSubscription.optIn(); // Commented out to prevent loops
-    }
     
   } catch (error) {
     console.error('Error setting OneSignal user:', error);
@@ -83,7 +81,7 @@ import { supabase } from './supabase';
 // ... existing imports ...
 
 export const sendPushNotification = async (content: string, targetUserId: string) => {
-  // We now use Supabase Edge Functions to avoid CORS issues and hide API keys
+  // Try sending via Supabase Edge Function first
   try {
     const { data, error } = await supabase.functions.invoke('send-push-notification', {
       body: { content, targetUserId },
@@ -92,6 +90,6 @@ export const sendPushNotification = async (content: string, targetUserId: string
     if (error) throw error;
     console.log('Push notification sent via Edge Function:', data);
   } catch (error) {
-    console.error('Error sending push notification:', error);
+    console.error('Error sending push notification via Edge Function:', error);
   }
 };

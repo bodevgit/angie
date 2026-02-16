@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
-import ColorThief from 'colorthief';
 import { setOneSignalUser } from './onesignal';
+import type { Session } from '@supabase/supabase-js';
 
 type UserProfile = 'angy' | 'bozy';
 
@@ -125,6 +125,7 @@ const themes: Record<UserProfile, { light: Theme; dark: Theme }> = {
 
 interface UserContextType {
   user: UserProfile | null;
+  session: Session | null;
   setUser: (user: UserProfile | null) => void;
   theme: Theme;
   userData: UserData;
@@ -133,78 +134,56 @@ interface UserContextType {
   uploadImage: (file: File, bucket: string, type?: 'avatar' | 'background') => Promise<string | null>;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  logout: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-const getDominantColors = async (imageUrl: string, isDark: boolean): Promise<ThemeValues | null> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.src = imageUrl;
-    
-    img.onload = () => {
-      try {
-        const colorThief = new ColorThief();
-        const palette = colorThief.getPalette(img, 5);
-        if (!palette || palette.length < 2) {
-            resolve(null);
-            return;
-        }
-
-        const rgb = (c: number[]) => `${c[0]} ${c[1]} ${c[2]}`;
-        
-        // Use dominant color as primary
-        const primary = palette[0];
-        const secondary = palette[1];
-        const accent = palette[2] || palette[0];
-        
-        // Determine brightness of primary color to decide text color on primary bg
-        // const brightness = (primary[0] * 299 + primary[1] * 587 + primary[2] * 114) / 1000;
-        // const isPrimaryLight = brightness > 128;
-
-        const values: ThemeValues = {
-            primary: rgb(primary),
-            secondary: rgb(secondary),
-            accent: rgb(accent), // For text
-            background: isDark ? '15 23 42' : '248 250 252', // Keep page bg neutral but tinted? Or extracted?
-            // Let's use neutral bg to avoid overwhelming look, but maybe tint it?
-            // Actually, user said "adjust all the layout and colors to that color of the image".
-            // So maybe use a very light tint of primary for bg.
-            text: isDark ? '243 244 246' : '17 24 39',
-            cardBg: isDark ? '30 41 59' : '255 255 255',
-        };
-
-        // Advanced: Adjust background and cardBg based on primary color
-        if (isDark) {
-             values.background = `${Math.max(0, primary[0]-200)} ${Math.max(0, primary[1]-200)} ${Math.max(0, primary[2]-200)}`; // Very dark version
-             values.cardBg = `${Math.max(0, primary[0]-150)} ${Math.max(0, primary[1]-150)} ${Math.max(0, primary[2]-150)}`; // Dark version
-             values.text = '243 244 246';
-        } else {
-             values.background = `${Math.min(255, primary[0]+200)} ${Math.min(255, primary[1]+200)} ${Math.min(255, primary[2]+200)}`; // Very light version
-             values.cardBg = '255 255 255';
-             values.text = '17 24 39';
-        }
-        
-        resolve(values);
-      } catch (e) {
-        console.error('Error extracting colors:', e);
-        resolve(null);
-      }
-    };
-    
-    img.onerror = (e) => {
-        console.error('Error loading image for color extraction:', e);
-        resolve(null);
-    };
-  });
-};
-
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(() => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUserState] = useState<UserProfile | null>(() => {
+    // Keep local storage for backwards compatibility / smooth transition
+    // but Auth should take precedence
     const saved = localStorage.getItem('user');
     return (saved as UserProfile) || null;
   });
+
+  // Wrapper to allow manual setting (legacy) but prioritize Auth
+  const setUser = (newUser: UserProfile | null) => {
+    setUserState(newUser);
+    if (newUser) {
+      localStorage.setItem('user', newUser);
+    } else {
+      localStorage.removeItem('user');
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user?.user_metadata?.profile_type) {
+        setUser(session.user.user_metadata.profile_type);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session?.user?.user_metadata?.profile_type) {
+        setUser(session.user.user_metadata.profile_type);
+      } else if (_event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('darkMode') === 'true';
@@ -218,10 +197,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (user) {
       localStorage.setItem('user', user);
+      // Only set OneSignal user if we have a valid session OR for legacy reasons we still allow it
+      // But user requested "authentication ... that makes sure that user is logged in"
+      // So we should strictly check for session if we want to be secure.
+      // However, to avoid breaking the app if they are not logged in yet, we can keep it loose 
+      // OR strictly enforce it. Let's enforce it if session exists.
+      if (session) {
+         setOneSignalUser(user);
+      } else {
+         // If no session, maybe we shouldn't register? 
+         // But for now let's allow it if they manually set it (legacy flow)
+         // until they fully migrate.
+         setOneSignalUser(user);
+      }
     } else {
       localStorage.removeItem('user');
     }
-  }, [user]);
+  }, [user, session]);
 
   useEffect(() => {
     localStorage.setItem('darkMode', String(isDarkMode));
@@ -297,53 +289,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
   }, []); // Run once on mount
 
-  useEffect(() => {
-    if (user) {
-      setOneSignalUser(user);
-    }
-  }, [user]);
 
-  // Effect to generate theme colors when background image changes
-  useEffect(() => {
-    if (!user) return;
-    const userData = userDataMap[user];
-    
-    if (userData?.backgroundImage && !userData.themeColors) {
-      // Generate theme colors
-      getDominantColors(userData.backgroundImage, isDarkMode).then(colors => {
-        if (colors) {
-          setUserDataMap(prev => ({
-            ...prev,
-            [user]: {
-              ...prev[user],
-              themeColors: colors
-            }
-          }));
-        }
-      });
-    } else if (!userData?.backgroundImage && userData?.themeColors) {
-      // Reset theme colors if background removed
-      setUserDataMap(prev => ({
-        ...prev,
-        [user]: {
-          ...prev[user],
-          themeColors: undefined
-        }
-      }));
-    }
-  }, [user, user ? userDataMap[user]?.backgroundImage : undefined, isDarkMode]); // Re-run if background or mode changes? 
-  // If mode changes, we might want to re-generate theme colors for dark/light mode optimization
-  
-  // Need to be careful not to create infinite loop. 
-  // userData.themeColors check prevents infinite loop if we only set it once.
-  // But if isDarkMode changes, we might want to update themeColors.
-  // So we should store themeColors for light/dark separately? Or just re-compute.
-  // For simplicity, let's recompute. 
-  // But updating state triggers re-render.
-  // Let's use a ref or just dependency check.
-  
-  // Better approach: Compute derived theme on the fly or in a useMemo, but ColorThief is async.
-  // So state is needed.
 
   const updateUserData = async (data: Partial<UserData>) => {
     if (!user) return;
@@ -423,6 +369,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   return (
     <UserContext.Provider value={{ 
       user, 
+      session,
       setUser, 
       theme: currentTheme, 
       userData: currentUserData,
@@ -430,7 +377,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       updateUserData,
       uploadImage,
       isDarkMode,
-      toggleDarkMode
+      toggleDarkMode,
+      logout
     }}>
       {children}
     </UserContext.Provider>

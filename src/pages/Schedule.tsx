@@ -4,17 +4,6 @@ import { useUser } from '../lib/user-context';
 import { useData } from '../lib/data-context';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// type ScheduleItem = {
-//   period: string;
-//   subject: string;
-//   time?: string;
-// };
-
-// type DaySchedule = {
-//   day: string;
-//   items: ScheduleItem[];
-// };
-
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
 
@@ -32,7 +21,7 @@ export function Schedule() {
     return today - 1;
   });
 
-  // Transform flat schedule data into structured format or use defaults
+  // Transform flat schedule data into structured format
   const currentSchedule = useMemo(() => {
     return DAYS.map(day => {
       const dayItems = PERIODS.map(period => {
@@ -43,23 +32,8 @@ export function Schedule() {
           s.period === period
         );
 
-        // Default logic if not found (only for Angy to preserve original data structure if DB empty)
-        // This is a bit of a hack to keep the "demo" data if the user hasn't edited anything yet.
-        // But for a real app, we might just want to show empty or "Free".
-        // Let's check if we have ANY data for this user.
-        const hasData = schedules.some(s => s.user_profile === activeTab);
-        
         if (found) {
           return { period, subject: found.subject, time: found.time };
-        } else if (!hasData && activeTab === 'angy') {
-          // Fallback to static data only if DB is completely empty for this user
-          // ... (We could inline the static data here, but for brevity let's just default to 'Free' 
-          // or we can copy the static arrays back in. Let's just default to 'Free' to force them to use the edit feature?)
-          // Actually, the user expects to see "some of the buttons are already there", implying they see data.
-          // Let's try to preserve the static data by checking if we have it in the component.
-          // Since I removed the static arrays in this replacement, I should probably put them back or re-implement them.
-          // To be safe and clean, let's just use empty/Free if no data.
-          return { period, subject: 'Free' };
         }
 
         return { period, subject: 'Free' };

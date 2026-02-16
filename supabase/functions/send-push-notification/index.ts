@@ -58,8 +58,13 @@ serve(async (req) => {
     let data = await response.json();
 
     // Fallback: If aliases fail (e.g. user not on new Identity model), try legacy external_user_id
-    if (data.errors && (JSON.stringify(data.errors).includes('include_aliases') || JSON.stringify(data.errors).includes('invalid_external_user_ids'))) {
-       console.log('Aliases failed, trying legacy include_external_user_ids...');
+    // Also try this if "All included players are not subscribed" which might mean alias lookup failed to find a subscribed device
+    if (data.errors && (
+        JSON.stringify(data.errors).includes('include_aliases') || 
+        JSON.stringify(data.errors).includes('invalid_external_user_ids') ||
+        JSON.stringify(data.errors).includes('not subscribed')
+    )) {
+       console.log('Aliases failed or no subscribed users found, trying legacy include_external_user_ids...');
        const legacyPayload = {
            ...payload,
            include_aliases: undefined,

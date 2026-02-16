@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds, format } from 'date-fns';
 import { useUser } from '../lib/user-context';
+import { getStatusColor } from '../lib/utils';
 import { useData } from '../lib/data-context';
 import { motion } from 'framer-motion';
 import { Edit2, X, Check, MapPin, Clock } from 'lucide-react';
@@ -46,15 +47,6 @@ export function Home() {
     }
   };
 
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'online': return 'bg-green-500 shadow-green-500/50';
-      case 'idle': return 'bg-yellow-500 shadow-yellow-500/50';
-      case 'dnd': return 'bg-red-500 shadow-red-500/50';
-      default: return 'bg-gray-500 shadow-gray-500/50';
-    }
-  };
-
   return (
     <div className="min-h-[calc(100vh-80px)] relative p-4 sm:p-6 flex flex-col">
       {/* Top Section: Profiles */}
@@ -70,7 +62,7 @@ export function Home() {
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-white/10 overflow-hidden bg-[#2B2D31]">
                 <img src={allUsers.bozy?.avatar} alt="Bozy" className="w-full h-full object-cover" />
               </div>
-              <div className={`absolute bottom-0 right-0 w-5 h-5 border-4 border-[#111214] rounded-full shadow-lg ${getStatusColor(allUsers.bozy?.status)}`} title={allUsers.bozy?.status || 'offline'} />
+              <div className={`absolute bottom-0 right-0 w-5 h-5 border-4 border-[#111214] rounded-full shadow-lg ${getStatusColor(allUsers.bozy?.status, true)}`} title={allUsers.bozy?.status || 'offline'} />
            </div>
            <div>
               <h3 className="text-xl font-bold text-gray-100">{allUsers.bozy?.name || 'Bozy'}</h3>
@@ -93,7 +85,7 @@ export function Home() {
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-white/10 overflow-hidden bg-[#2B2D31]">
                 <img src={allUsers.angy?.avatar} alt="Angy" className="w-full h-full object-cover" />
               </div>
-              <div className={`absolute bottom-0 right-0 w-5 h-5 border-4 border-[#111214] rounded-full shadow-lg ${getStatusColor(allUsers.angy?.status)}`} title={allUsers.angy?.status || 'offline'} />
+              <div className={`absolute bottom-0 right-0 w-5 h-5 border-4 border-[#111214] rounded-full shadow-lg ${getStatusColor(allUsers.angy?.status, true)}`} title={allUsers.angy?.status || 'offline'} />
            </div>
            <div>
               <h3 className="text-xl font-bold text-gray-100">{allUsers.angy?.name || 'Angy'}</h3>

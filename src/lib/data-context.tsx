@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabase';
-// import { useUser } from './user-context';
 
 export type DateItem = {
   id: string;
@@ -53,30 +52,13 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  // const { user } = useUser();
   const [dates, setDates] = useState<DateItem[]>([]);
   const [plans, setPlans] = useState<PlanItem[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [nextMeeting, setNextMeeting] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-
-    // Subscribe to changes
-    const channel = supabase.channel('public:data')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'dates' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'plans' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, fetchData)
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [datesRes, plansRes, schedulesRes, configRes] = await Promise.all([
@@ -106,7 +88,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+
+    // Subscribe to changes
+    const channel = supabase.channel('public:data')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dates' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'plans' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, fetchData)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchData]);
 
   const addDate = async (date: Omit<DateItem, 'id'>) => {
     const { error } = await supabase.from('dates').insert(date);
@@ -145,8 +143,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateSchedule = async (item: Omit<ScheduleItem, 'id'>) => {
-    // Check if exists first or use upsert with conflict on user, day, period
-    // Assuming unique constraint on (user_profile, day, period)
     const { error } = await supabase.from('schedules').upsert(item, { onConflict: 'user_profile,day,period' });
     if (error) console.error('Error updating schedule:', error);
     else fetchData();

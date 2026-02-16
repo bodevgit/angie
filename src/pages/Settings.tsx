@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { Settings as SettingsIcon, Moon, Sun, Image as ImageIcon, HelpCircle, ExternalLink } from 'lucide-react';
 import { useUser } from '../lib/user-context';
+import { getStatusColor } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 export function Settings() {
-  const { theme, userData, updateUserData, isDarkMode, toggleDarkMode, setUser, uploadImage, user } = useUser();
+  const { theme, userData, updateUserData, isDarkMode, toggleDarkMode, uploadImage, user, logout } = useUser();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -14,7 +15,6 @@ export function Settings() {
   const [discordId, setDiscordId] = useState('');
   const [isFetchingDiscord, setIsFetchingDiscord] = useState(false);
   
-  // const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
 
@@ -23,24 +23,17 @@ export function Settings() {
     
     setIsFetchingDiscord(true);
     try {
-      // Use Lanyard API to fetch Discord user data (publicly available for users in Lanyard-monitored servers or if they use Lanyard)
-      // Note: This works best if the user is in the Lanyard Discord server or uses the service.
-      // Alternatively, we can use a direct Discord API proxy if configured, but Lanyard is a good public option for this demo.
+      // Use Lanyard API to fetch Discord user data
       const response = await fetch(`https://api.lanyard.rest/v1/users/${discordId}`);
       const data = await response.json();
       
       if (data.success) {
         const { discord_user, discord_status } = data.data;
         
-        // Construct avatar URL
         const avatarUrl = discord_user.avatar 
           ? `https://cdn.discordapp.com/avatars/${discord_user.id}/${discord_user.avatar}.${discord_user.avatar.startsWith('a_') ? 'gif' : 'png'}?size=512`
           : `https://cdn.discordapp.com/embed/avatars/${parseInt(discord_user.discriminator) % 5}.png`;
           
-        // Construct banner URL (if available) - Note: Lanyard might not always return banner in the basic object without raw data
-        // We'll try to use the raw user object if available or just update what we can
-        
-        // Update local state for preview
         setTempName(discord_user.display_name || discord_user.username);
         
         const updates: any = { 
@@ -49,15 +42,11 @@ export function Settings() {
             status: discord_status
         };
 
-        // Try to get banner if available in the raw response
-        // Note: Lanyard response structure for banner might vary or require caching
-        // We can check if `discord_user` has a `banner` property (hash)
         if (discord_user.banner) {
            const bannerUrl = `https://cdn.discordapp.com/banners/${discord_user.id}/${discord_user.banner}.${discord_user.banner.startsWith('a_') ? 'gif' : 'png'}?size=1024`;
            updates.backgroundImage = bannerUrl;
         }
 
-        // Auto-save the fetched data
         await updateUserData(updates);
         
         alert('Discord profile fetched successfully!');
@@ -79,8 +68,8 @@ export function Settings() {
     setIsEditing(false);
   };
 
-  const handleLogout = () => {
-    setUser(null);
+  const handleLogout = async () => {
+    await logout();
     navigate('/welcome');
   };
 
@@ -106,30 +95,6 @@ export function Settings() {
       setIsUploading(false);
       // Reset input value to allow selecting the same file again
       event.target.value = '';
-    }
-  };
-
-  // const clearAvatar = () => {
-  //   // Reset to default dicebear avatar based on name
-  //   const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.name}&backgroundColor=${theme.name.includes('Angy') ? 'ffdfbf' : 'b6e3f4'}`;
-  //   updateUserData({ avatar: defaultAvatar });
-  // };
-
-  // const avatars = [
-  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Angy&backgroundColor=ffdfbf',
-  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Bozy&backgroundColor=b6e3f4',
-  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=c0aede',
-  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Luna&backgroundColor=ffdfbf',
-  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Milo&backgroundColor=b6e3f4',
-  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Bella&backgroundColor=c0aede',
-  // ];
-
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'online': return 'bg-green-500';
-      case 'idle': return 'bg-yellow-500';
-      case 'dnd': return 'bg-red-500';
-      default: return 'bg-gray-500';
     }
   };
 
@@ -384,19 +349,6 @@ export function Settings() {
                 <h3 className="text-gray-100 font-bold uppercase text-xs tracking-wide mb-4">Account Management</h3>
                 
                 <div className="bg-[#2B2D31] rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-700/50">
-                    <div>
-                      <h4 className="text-gray-200 font-medium">Switch Account</h4>
-                      <p className="text-xs text-gray-400">Switch to {user === 'angy' ? 'Bozy' : 'Angy'}'s profile</p>
-                    </div>
-                    <button 
-                      onClick={() => setUser(user === 'angy' ? 'bozy' : 'angy')}
-                      className="px-4 py-2 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-colors text-sm font-medium border border-blue-500/20"
-                    >
-                      Switch to {user === 'angy' ? 'Bozy' : 'Angy'}
-                    </button>
-                  </div>
-
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-gray-200 font-medium">Log Out</h4>
