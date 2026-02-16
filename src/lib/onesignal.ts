@@ -22,7 +22,6 @@ export const initOneSignal = async () => {
       allowLocalhostAsSecureOrigin: true,
       serviceWorkerParam: { scope: '/angie/' },
       serviceWorkerPath: 'OneSignalSDKWorker.js',
-      path: '/angie/', // Crucial for finding SDK files
     });
     isInitialized = true;
     console.log('OneSignal initialized successfully');
