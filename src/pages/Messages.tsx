@@ -259,10 +259,24 @@ export function Messages() {
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] max-w-3xl mx-auto p-4 relative">
       <div className="flex justify-between items-center mb-4">
-        <h1 className={`text-2xl font-bold ${theme.colors.accent} flex items-center gap-2`}>
-          <MessageCircle className={theme.colors.text} />
-          Chat
-        </h1>
+        <div className="flex flex-col">
+          <h1 className={`text-2xl font-bold ${theme.colors.accent} flex items-center gap-2`}>
+            <MessageCircle className={theme.colors.text} />
+            Chat
+          </h1>
+          {typingUsers.size > 0 && (
+            <motion.p 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-xs text-gray-400 ml-1 h-4 animate-pulse font-medium"
+            >
+              {typingUsers.size === 1 
+                ? `${allUsers[Array.from(typingUsers)[0] as 'angy' | 'bozy']?.name || 'Someone'} is typing...`
+                : 'Multiple people typing...'
+              }
+            </motion.p>
+          )}
+        </div>
         
         <div className="flex gap-2">
           <button
@@ -337,23 +351,35 @@ export function Messages() {
             {/* Typing Indicator */}
             {typingUsers.size > 0 && (
               <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-start"
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="flex justify-start w-full"
               >
                 <div className="flex items-end gap-2 max-w-[80%] flex-row">
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-white/10 bg-gray-800">
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-white/10 bg-gray-800 shadow-sm">
                     {typingUsers.size === 1 ? (
-                       <img src={allUsers[Array.from(typingUsers)[0] as 'angy' | 'bozy']?.avatar} alt="Typing" className="w-full h-full object-cover opacity-50" />
+                       <img src={allUsers[Array.from(typingUsers)[0] as 'angy' | 'bozy']?.avatar} alt="Typing" className="w-full h-full object-cover opacity-80" />
                     ) : (
                        <div className="w-full h-full bg-gray-600 animate-pulse" />
                     )}
                   </div>
                   
-                  <div className="bg-white/10 p-3 rounded-2xl rounded-bl-none border border-white/5 flex gap-1">
-                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="bg-white/10 p-4 rounded-2xl rounded-bl-none border border-white/5 flex gap-1.5 shadow-sm items-center h-10">
+                    <motion.div 
+                      className="w-2 h-2 bg-gray-400 rounded-full"
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0 }}
+                    />
+                    <motion.div 
+                      className="w-2 h-2 bg-gray-400 rounded-full"
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                    />
+                    <motion.div 
+                      className="w-2 h-2 bg-gray-400 rounded-full"
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+                    />
                   </div>
                 </div>
               </motion.div>
