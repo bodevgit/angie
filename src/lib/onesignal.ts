@@ -36,8 +36,11 @@ export const setOneSignalUser = async (userId: string) => {
   }
   
   try {
+    // Login identifies the user
     await OneSignal.login(userId);
-    console.log('OneSignal user set:', userId);
+    // Add alias to ensure 'external_id' targeting works reliably
+    await OneSignal.User.addAlias("external_id", userId);
+    console.log('OneSignal user set and aliased:', userId);
   } catch (error) {
     console.error('Error setting OneSignal user:', error);
   }
