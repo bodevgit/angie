@@ -28,8 +28,10 @@ export function Messages() {
     checkNotificationPermission();
 
     // Subscribe to new messages
+    // Use a unique channel name per session to avoid conflicts
+    const channelName = `public:messages:${Date.now()}`;
     const channel = supabase
-      .channel('public:messages')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -38,8 +40,13 @@ export function Messages() {
           table: 'messages',
         },
         (payload) => {
+          console.log('Realtime message received:', payload);
           const newMsg = payload.new as Message;
-          setMessages((prev) => [...prev, newMsg]);
+          setMessages((prev) => {
+             // Deduplicate messages just in case
+             if (prev.some(m => m.id === newMsg.id)) return prev;
+             return [...prev, newMsg];
+          });
           
           // Show local notification if not sent by current user
           if (newMsg.sender_id !== user) {
@@ -49,9 +56,12 @@ export function Messages() {
           scrollToBottom();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Realtime subscription status: ${status}`);
+      });
 
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [user]);
@@ -154,6 +164,14 @@ export function Messages() {
     }
   };
 
+  const handleTestNotification = () => {
+     const targetUser = user === 'angy' ? 'bozy' : 'angy';
+     if (confirm(`Send test push to ${targetUser}?`)) {
+        sendPushNotification("This is a test push!", targetUser);
+        alert("Sent! If they don't receive it, check the console logs.");
+     }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] max-w-3xl mx-auto p-4 relative">
       <div className="flex justify-between items-center mb-4">
@@ -162,8 +180,15 @@ export function Messages() {
           Chat
         </h1>
         
-        <button 
-          onClick={requestNotificationPermission}
+        <div className="flex gap-2">
+          <button
+             onClick={handleTestNotification}
+             className="text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded hover:bg-gray-700"
+          >
+            Test Push
+          </button>
+          <button 
+            onClick={requestNotificationPermission}
           className={`p-2 rounded-full transition-colors ${notificationsEnabled ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-500'}`}
           title={notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
         >
