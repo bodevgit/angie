@@ -61,7 +61,7 @@ export function Layout() {
 }
 
 function NavItem({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
-  const { theme, user, isDarkMode } = useUser();
+  const { theme, isDarkMode } = useUser();
   
   return (
     <NavLink

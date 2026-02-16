@@ -10,7 +10,7 @@ import { Settings } from './pages/Settings';
 import { UserProvider, useUser } from './lib/user-context';
 import { DataProvider } from './lib/data-context';
 import { Welcome } from './pages/Welcome';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { ReloadPrompt } from './components/ReloadPrompt';
 
 function ProtectedLayout() {

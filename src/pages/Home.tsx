@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Edit2, X, Check, MapPin, Clock } from 'lucide-react';
 
 export function Home() {
-  const { theme, user, allUsers } = useUser();
+  const { allUsers } = useUser();
   const { nextMeeting, updateNextMeeting } = useData();
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState('');

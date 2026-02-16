@@ -159,8 +159,8 @@ const getDominantColors = async (imageUrl: string, isDark: boolean): Promise<The
         const accent = palette[2] || palette[0];
         
         // Determine brightness of primary color to decide text color on primary bg
-        const brightness = (primary[0] * 299 + primary[1] * 587 + primary[2] * 114) / 1000;
-        const isPrimaryLight = brightness > 128;
+        // const brightness = (primary[0] * 299 + primary[1] * 587 + primary[2] * 114) / 1000;
+        // const isPrimaryLight = brightness > 128;
 
         const values: ThemeValues = {
             primary: rgb(primary),
@@ -235,7 +235,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     async function fetchProfiles() {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*');
+        .select('*')
+        .in('id', ['angy', 'bozy']);
+
+      if (error) {
+        console.error('Error fetching profiles:', error);
+      }
 
       if (data) {
         const newMap = { ...userDataMap };
@@ -319,7 +324,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       }));
     }
-  }, [user, userDataMap[user]?.backgroundImage, isDarkMode]); // Re-run if background or mode changes? 
+  }, [user, user ? userDataMap[user]?.backgroundImage : undefined, isDarkMode]); // Re-run if background or mode changes? 
   // If mode changes, we might want to re-generate theme colors for dark/light mode optimization
   
   // Need to be careful not to create infinite loop. 

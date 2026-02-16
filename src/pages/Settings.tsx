@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Settings as SettingsIcon, Moon, Sun, Camera, User, Palette, LogOut, Image as ImageIcon, Upload, X, HelpCircle, ExternalLink } from 'lucide-react';
+import { Settings as SettingsIcon, Moon, Sun, Image as ImageIcon, HelpCircle, ExternalLink } from 'lucide-react';
 import { useUser } from '../lib/user-context';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +14,7 @@ export function Settings() {
   const [discordId, setDiscordId] = useState('');
   const [isFetchingDiscord, setIsFetchingDiscord] = useState(false);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,20 +109,20 @@ export function Settings() {
     }
   };
 
-  const clearAvatar = () => {
-    // Reset to default dicebear avatar based on name
-    const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.name}&backgroundColor=${theme.name.includes('Angy') ? 'ffdfbf' : 'b6e3f4'}`;
-    updateUserData({ avatar: defaultAvatar });
-  };
+  // const clearAvatar = () => {
+  //   // Reset to default dicebear avatar based on name
+  //   const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.name}&backgroundColor=${theme.name.includes('Angy') ? 'ffdfbf' : 'b6e3f4'}`;
+  //   updateUserData({ avatar: defaultAvatar });
+  // };
 
-  const avatars = [
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Angy&backgroundColor=ffdfbf',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Bozy&backgroundColor=b6e3f4',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=c0aede',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Luna&backgroundColor=ffdfbf',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Milo&backgroundColor=b6e3f4',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Bella&backgroundColor=c0aede',
-  ];
+  // const avatars = [
+  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Angy&backgroundColor=ffdfbf',
+  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Bozy&backgroundColor=b6e3f4',
+  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=c0aede',
+  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Luna&backgroundColor=ffdfbf',
+  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Milo&backgroundColor=b6e3f4',
+  //   'https://api.dicebear.com/7.x/avataaars/svg?seed=Bella&backgroundColor=c0aede',
+  // ];
 
   const getStatusColor = (status?: string) => {
     switch (status) {

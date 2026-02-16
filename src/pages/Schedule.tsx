@@ -1,19 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { School, Briefcase, ChevronLeft, ChevronRight, Clock, Edit2, Save, X } from 'lucide-react';
 import { useUser } from '../lib/user-context';
 import { useData } from '../lib/data-context';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type ScheduleItem = {
-  period: string;
-  subject: string;
-  time?: string;
-};
+// type ScheduleItem = {
+//   period: string;
+//   subject: string;
+//   time?: string;
+// };
 
-type DaySchedule = {
-  day: string;
-  items: ScheduleItem[];
-};
+// type DaySchedule = {
+//   day: string;
+//   items: ScheduleItem[];
+// };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PERIODS = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];

@@ -72,7 +72,7 @@ export function Itinerary() {
               <h2 className="text-lg font-semibold text-gray-800 mb-4 sticky top-0 bg-white/80 backdrop-blur-sm py-2 z-10 rounded-r-lg">{day}</h2>
               
               <div className="space-y-4">
-                {items.map((activity, actIndex) => (
+                {items.map((activity) => (
                   <motion.div 
                     key={activity.id}
                     whileHover={{ scale: 1.02 }}

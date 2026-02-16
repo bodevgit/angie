@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
-import { useUser } from './user-context';
+// import { useUser } from './user-context';
 
 export type DateItem = {
   id: string;
@@ -53,7 +53,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useUser();
+  // const { user } = useUser();
   const [dates, setDates] = useState<DateItem[]>([]);
   const [plans, setPlans] = useState<PlanItem[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
